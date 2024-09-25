@@ -3,8 +3,8 @@ name: Maven CI Pipeline
 on:
   push:
     branches:
-      - main
-      - master
+      - main1
+      - master1
   pull_request:
     branches:
       - main
