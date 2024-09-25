@@ -62,10 +62,19 @@ jobs:
 
       - name: Upload to Nexus
         run: mvn deploy
+
+      - name: Add SSH Key
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.EC2_PRIVATE_KEY }}" > ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
+
+      - name: Deploy to Tomcat
+        run: scp -o StrictHostKeyChecking=no target/*.war  ec2-user@35.179.94.59:/opt/tomcat9/webapps
     
 
 
-
+      
 
 
   
