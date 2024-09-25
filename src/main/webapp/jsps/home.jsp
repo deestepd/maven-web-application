@@ -25,16 +25,16 @@
 	enabling our learners to apply the concepts they learn to real-world scenarios. 
 	We also provide continuous support and guidance to our learners, 
 	ensuring that they have all the resources they need to succeed.</h1>
-	<p> 
+	<!-- <p> 
 		<h1>
-			OUR LATEST CLIENTS ARE : <br>
+			OUR LATEST CLIENTS ARE : 
 			<ol>HOME OFFICE </ol>
 			<ol>LAND REGISTRY </ol>
 			<ol>NATIONWIDE BANK</ol>
 				
 
 		</h1>
-	</p>
+	</p> -->
 <hr>
 <div style="text-align: center;">
 	<span>
