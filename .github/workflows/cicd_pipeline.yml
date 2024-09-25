@@ -44,6 +44,9 @@ jobs:
           ls
           ls target
 
+      - name: Sonarqube Scan
+        run: mvn sonar:sonar 
+
 
 
 
