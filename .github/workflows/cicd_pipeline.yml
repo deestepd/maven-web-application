@@ -45,7 +45,26 @@ jobs:
           ls target
 
       - name: Sonarqube Scan
-        run: mvn sonar:sonar 
+        run: mvn sonar:sonar
+      
+      - name: Configure Maven settings for nexus
+        run: |
+          mkdir -p ~/.m2
+          echo "<settings>\
+          <servers>\
+              <server>\
+                  <id>nexus</id>\
+                  <username>admin</username>\
+                  <password>admin123</password>\
+              </server>\
+          </servers>\
+          </settings>" > ~/.m2/settings.xml    
+
+      - name: Upload to Nexus
+        run: mvn deploy
+      
+
+      - 
 
 
 
