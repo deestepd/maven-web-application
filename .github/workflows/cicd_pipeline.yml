@@ -15,11 +15,15 @@ jobs:
     steps:
       - name: check current directory
         run: ls 
-      # checkout the repository
-    # - name: Checkout repository
-    #   uses: actions/checkout@v3
 
+      # checkout the repository
       - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: check content of cd after checkout
+        run: ls 
+
+      - name: clone diferrent repository
         run: git clone https://github.com/benadaba/maven-web-application.git
 
       - name: check current directory
