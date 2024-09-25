@@ -16,7 +16,7 @@ node{
      
      
      stage("4UploadArtifacts"){
-     
+       //comment here: something
      	 sh "${mavenHome}/bin/mvn deploy"
      }
      
