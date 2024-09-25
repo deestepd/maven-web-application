@@ -39,6 +39,11 @@ jobs:
       - name: build and test with Maven
         run: mvn clean install
 
+      - name: Check directory after build
+        run: |
+          ls
+          ls target
+
 
 
 
