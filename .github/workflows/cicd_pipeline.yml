@@ -6,7 +6,7 @@ on:
       - main
       - master
   
-  workflow_despatch:
+  workflow_dispatch:
 
 jobs:
   build:
