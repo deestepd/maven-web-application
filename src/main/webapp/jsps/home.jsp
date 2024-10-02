@@ -25,16 +25,15 @@
 	enabling our learners to apply the concepts they learn to real-world scenarios. 
 	We also provide continuous support and guidance to our learners, 
 	ensuring that they have all the resources they need to succeed.</h1>
-	 <p> 
+	 <br> 
 		<h2>
 			OUR LATEST CLIENTS ARE : 
 			<ol>BA FLIGHTS </ol>
-			<ol>LAND REGISTRY </ol>
-			<ol>NATIONWIDE BANK</ol>
+			<ol>LANDROVER</ol>
+			<ol>BMW</ol>
 				
 
-		</h2>
-	</p> 
+		</h2> 
 <hr>
 <div style="text-align: center;">
 	<span>
