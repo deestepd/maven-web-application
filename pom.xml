@@ -104,14 +104,14 @@
 	
 	    <repository>
 	      <id>nexus</id>
-	      <name>DataPandas Releases Nexus Repository</name>
-	      <url>http://13.41.191.215:8081/repository/barclays-project-release/</url>
+	      <name>Apple Releases Nexus Repository</name>
+	      <url>http://3.8.138.193:8081/repository/apple-release/</url>
 	    </repository>
 	    
 	    <snapshotRepository>
 	      <id>nexus</id>
-	      <name>DataPandas Snapshot Nexus Repository </name>
-	      <url>http://13.41.191.215:8081/repository/barclays-project/</url>
+	      <name>Apple Snapshot Nexus Repository </name>
+	      <url>http://3.8.138.193:8081/repository/apple-snapshot/</url>
 	    </snapshotRepository>
 	    
 	</distributionManagement>
