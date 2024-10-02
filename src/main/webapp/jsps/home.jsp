@@ -28,7 +28,7 @@
 	 <p> 
 		<h2>
 			OUR LATEST CLIENTS ARE : 
-			<ol>HOME OFFICE </ol>
+			<ol>BA FLIGHTS </ol>
 			<ol>LAND REGISTRY </ol>
 			<ol>NATIONWIDE BANK</ol>
 				
