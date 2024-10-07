@@ -117,7 +117,7 @@
 	</distributionManagement>
 	
 	<build>
-		<finalName>santanader-bank-app</finalName>
+		<finalName>barclays-app</finalName>
 		
 		<plugins>
 			<plugin>
