@@ -23,7 +23,7 @@ node {
     }
     
     stage("7.DeployToUAT_tomcatAppserver"){
-      deploy adapters: [tomcat9(credentialsId: 'tomcat-cred', path: '', url: 'http://35.179.106.255:8080/')], contextPath: null, war: 'target/*.war'   
+      deploy adapters: [tomcat9(credentialsId: 'tomcat-cred', path: '', url: 'http://13.42.18.174:8080/')], contextPath: null, war: 'target/*.war'   
     }
     
     stage("8.ApprovalGate"){
