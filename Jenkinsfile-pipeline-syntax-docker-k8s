@@ -18,6 +18,8 @@ pipeline{
         KUBERNETES_NAMESPACE = 'default'  // Kubernetes namespace to deploy to
         DEPLOYMENT_NAME = 'maven-cicd-deployment'  // Kubernetes deployment name
         CONTAINER_NAME = 'maven-cicd-container'  // Name of the container in the Kubernetes deployment
+        SERVICE_NAME = 'maven-cicd-service'  // Kubernetes service name
+        WAR_FILE_PATH = '/barclays-app'  // The WAR file context path
     }
 
     
@@ -204,7 +206,7 @@ pipeline{
             }
         }
 
-        stage('Update Deployment') {
+        stage('16.Update Deployment') {
             
             steps {
                   withAWS(credentials: AWS_CREDENTIALS, region: AWS_REGION) {
@@ -219,6 +221,30 @@ pipeline{
             }
         }
         
+        stage('17.Retrieve LoadBalancer URL') {
+            steps {
+                withAWS(credentials: AWS_CREDENTIALS, region: AWS_REGION) {
+                script {
+                    // Get LoadBalancer URL (try for hostname first, fallback to IP)
+                    def loadBalancerUrl = sh(script: "kubectl get svc ${SERVICE_NAME} --namespace=${KUBERNETES_NAMESPACE} -o jsonpath='{.status.loadBalancer.ingress[0].hostname}'", returnStdout: true).trim()
+
+                    if (!loadBalancerUrl) {
+                        loadBalancerUrl = sh(script: "kubectl get svc ${SERVICE_NAME} --namespace=${KUBERNETES_NAMESPACE} -o jsonpath='{.status.loadBalancer.ingress[0].ip}'", returnStdout: true).trim()
+                    }
+
+                    if (!loadBalancerUrl) {
+                        error("Failed to retrieve LoadBalancer URL or IP.")
+                    }
+
+                    // Print the full URL with the WAR file context path
+                    def fullAppUrl = "http://${loadBalancerUrl}${WAR_FILE_PATH}"
+                    echo "Application deployed at: ${fullAppUrl}"
+                }
+            }
+        }
+        
+        }
+    
         
      }
      
