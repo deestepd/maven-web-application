@@ -265,7 +265,7 @@ pipeline{
             steps {
                 withAWS(credentials: AWS_CREDENTIALS, region: AWS_REGION) {
                     script {
-                        // Run the eks-install.sh script with the appropriate action (install or delete)
+                        // Run the eks-install.sh script with the appropriate action (install or delete) . takes about 15 minutes
                         sh "./eks-install.sh ${ACTION}"
                     }
                 }
