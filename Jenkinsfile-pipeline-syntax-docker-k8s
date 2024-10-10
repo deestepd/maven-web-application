@@ -20,6 +20,9 @@ pipeline{
         CONTAINER_NAME = 'maven-cicd-container'  // Name of the container in the Kubernetes deployment
         SERVICE_NAME = 'maven-cicd-service'  // Kubernetes service name
         WAR_FILE_PATH = '/barclays-app'  // The WAR file context path
+        
+        CLUSTER_NAME = 'eks-demo'  // EKS cluster name
+        ACTION = 'install'  // Either 'install' or 'delete' depending on what you want to do
     }
 
     
@@ -135,6 +138,7 @@ pipeline{
             }
         }
     
+    
           stage('12.Install AWS CLI') {
             steps {
                 sh '''
@@ -171,7 +175,103 @@ pipeline{
                 }
             }
         }
-         stage('14.Configure AWS and kubectl') {
+        
+          stage('14.Install eksctl') {
+            steps {
+                script {
+                    // Install eksctl if not already installed
+                    def eksctlInstalled = sh(script: 'which eksctl', returnStatus: true) == 0
+
+                    if (!eksctlInstalled) {
+                        echo 'Installing eksctl...'
+                        sh '''
+                        # Get the latest eksctl version from GitHub API
+                        curl --silent --location "https://github.com/weaveworks/eksctl/releases/latest/download/eksctl_$(uname -s)_amd64.tar.gz" | tar xz -C /tmp
+                        sudo mv /tmp/eksctl /usr/local/bin/
+                        '''
+                    } else {
+                        echo 'eksctl is already installed.'
+                    }
+                }
+            }
+        }
+          
+           stage('15.Prepare eks-install.sh') {
+            steps {
+                script {
+                    // Create the eks-install.sh script
+                    writeFile file: 'eks-install.sh', text: '''#!/bin/bash
+                    CLUSTER_NAME="eks-demo"
+                    AWS_REGION="eu-west-2"
+
+                    install_cluster() {
+                        echo "Checking if EKS cluster: ${CLUSTER_NAME} already exists in region: ${AWS_REGION}"
+
+                        eksctl get cluster --name ${CLUSTER_NAME} --region ${AWS_REGION} > /dev/null 2>&1
+
+                        if [ $? -eq 0 ]; then
+                            echo "EKS cluster ${CLUSTER_NAME} already exists. Skipping creation."
+                        else
+                            echo "EKS cluster ${CLUSTER_NAME} does not exist. Proceeding with creation."
+                            
+                            eksctl create cluster \
+                                --name ${CLUSTER_NAME} \
+                                --region ${AWS_REGION} \
+                                --nodegroup-name standard-workers \
+                                --node-type t3.medium \
+                                --nodes 2 \
+                                --nodes-min 1 \
+                                --nodes-max 3 \
+                                --managed
+                            
+                            if [ $? -eq 0 ]; then
+                                echo "EKS cluster ${CLUSTER_NAME} created successfully."
+                            else
+                                echo "Failed to create EKS cluster ${CLUSTER_NAME}."
+                                exit 1
+                            fi
+                        fi
+                    }
+
+                    delete_cluster() {
+                        echo "Deleting EKS cluster: ${CLUSTER_NAME} in region: ${AWS_REGION}"
+
+                        eksctl delete cluster --name ${CLUSTER_NAME} --region ${AWS_REGION}
+
+                        if [ $? -eq 0 ]; then
+                            echo "EKS cluster ${CLUSTER_NAME} deleted successfully."
+                        else
+                            echo "Failed to delete EKS cluster ${CLUSTER_NAME}."
+                            exit 1
+                        fi
+                    }
+
+                    if [ "$1" == "install" ]; then
+                        install_cluster
+                    elif [ "$1" == "delete" ]; then
+                        delete_cluster
+                    else
+                        echo "Invalid option. Use 'install' to create the cluster or 'delete' to remove it."
+                        exit 1
+                    fi
+                    '''
+
+                    // Ensure the script is executable
+                    sh 'chmod +x eks-install.sh'
+                }
+            }
+        }
+        stage('16.Run eks-install.sh') {
+            steps {
+                withAWS(credentials: AWS_CREDENTIALS, region: AWS_REGION) {
+                    script {
+                        // Run the eks-install.sh script with the appropriate action (install or delete)
+                        sh "./eks-install.sh ${ACTION}"
+                    }
+                }
+            }
+        }
+         stage('17.Configure AWS and kubectl') {
             steps {
                 withAWS(credentials: AWS_CREDENTIALS, region: AWS_REGION) {
                     script {
@@ -184,7 +284,7 @@ pipeline{
             }
         }
         
-         stage('15.Initial Deployment') {
+         stage('18.Initial Deployment') {
             steps {
                   withAWS(credentials: AWS_CREDENTIALS, region: AWS_REGION) {
                 script {
@@ -206,7 +306,7 @@ pipeline{
             }
         }
 
-        stage('16.Update Deployment') {
+        stage('19.Update Deployment') {
             
             steps {
                   withAWS(credentials: AWS_CREDENTIALS, region: AWS_REGION) {
@@ -221,7 +321,7 @@ pipeline{
             }
         }
         
-        stage('17.Retrieve LoadBalancer URL') {
+        stage('20.Retrieve LoadBalancer URL') {
             steps {
                 withAWS(credentials: AWS_CREDENTIALS, region: AWS_REGION) {
                 script {
