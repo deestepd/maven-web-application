@@ -15,7 +15,7 @@ spec:
     spec:
       containers:
       - name: maven-cicd-container
-        image: datapandassandbox/maven-web-app-jenkins-cicd:17
+        image: datapandassandbox/maven-web-app-contanerized-cicd:10
         ports:
         - containerPort: 8080
 ---
