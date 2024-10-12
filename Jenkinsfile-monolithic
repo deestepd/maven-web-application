@@ -1,0 +1,105 @@
+pipeline{
+     agent any
+     
+      tools {
+       maven "maven394"
+    //   def mavenHome = tool name: "maven394"
+     }
+     
+     stages{
+           stage("1GetCode"){
+                  steps{
+                    git branch: 'main', url: 'https://github.com/benadaba/maven-web-application.git'
+                  }
+           }
+           
+           
+            stage("2CleanTargetDirectory"){
+             steps{
+                sh "mvn clean"
+             }
+         
+            }
+            
+            stage("3UnitTest"){
+                  steps{
+                    sh "mvn test"
+                  }
+            }
+       
+           stage("4BuildThePackage"){
+              steps{
+                sh "mvn package"
+              }
+           }
+           
+            stage("5CodeQualityAnalysis"){
+              steps{
+                sh "mvn sonar:sonar"
+              }
+            }
+            
+            stage("6UploadArtifactsBackUp"){
+              steps{
+                sh "mvn deploy"
+              }
+           }
+           
+    stage("7DeploytoUAT_TomcatServer"){
+              steps{
+              deploy adapters: [tomcat9(credentialsId: 'tomcat-cred', path: '', url: 'http://18.175.234.127:8080/')], contextPath: null, war: 'target/*.war'
+              }
+      
+      }
+      
+      stage("8.ApprovalGate"){
+         steps{
+          timeout(time:2, unit:'MINUTES'){
+            input message: "Please review the application and give us your feedback before we take the next action"
+          }
+          }
+        }
+        
+     stage("9Deployto_PROD_TomcatServer"){
+              steps{
+              deploy adapters: [tomcat9(credentialsId: 'tomcat-cred', path: '', url: 'http://18.175.234.127:8080/')], contextPath: null, war: 'target/*.war'
+              }
+      
+      }
+        
+    
+       stage("8SendNotification"){
+              steps{
+                sh """
+                echo "i am sending notifiaction"
+                
+                """
+              }
+           }
+           
+       
+          
+           
+    }    
+    
+    
+           
+     post{
+     
+        always {
+            echo 'Cleaning up workspace...'
+            /*cleanWs()  // Clean the workspace after job
+            */
+        }
+
+        success {
+            echo 'Deployment successful!'
+        }
+
+        failure {
+            echo 'Deployment failed!'
+        }
+     } 
+}
+
+
