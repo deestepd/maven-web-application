@@ -1,0 +1,252 @@
+pipeline{
+     agent any
+     
+      tools {
+       maven "maven394"
+    //   def mavenHome = tool name: "maven394"
+     }
+     
+     environment {
+        DOCKER_IMAGE = 'datapandassandbox/maven-web-app-contanerized-cicd'
+        DOCKER_CREDENTIALS = 'dockerhub-containerized-creds'
+        AWS_CREDENTIALS = 'k8s-contanerized-creds'
+        AWS_REGION = 'eu-west-2'
+        EKS_CLUSTER_NAME = "eks-demo"
+        SERVICE_NAME="maven-cicd-service"
+        KUBERNETES_NAMESPACE="default"
+        
+     }
+     
+     stages{
+           stage("1GetCode"){
+                  steps{
+                    cleanWs()
+                    git branch: 'main', url: 'https://github.com/benadaba/maven-web-application.git'
+                  }
+           }
+           
+           
+            stage("2CleanTargetDirectory"){
+             steps{
+                sh "mvn clean"
+              
+             }
+         
+            }
+            
+            stage("3UnitTest"){
+                  steps{
+                    sh "mvn test"
+                  }
+            }
+       
+           stage("4BuildThePackage"){
+              steps{
+                sh "mvn package"
+              }
+           }
+           
+            stage("5CodeQualityAnalysis"){
+              steps{
+                sh "mvn sonar:sonar"
+              }
+            }
+            
+            stage("6UploadArtifactsBackUp"){
+              steps{
+                sh "mvn deploy"
+              }
+           }
+           
+        stage('7.Install Docker') {
+            steps {
+                sh '''
+                 sudo yum install -y yum-utils
+                    sudo yum-config-manager --add-repo https://download.docker.com/linux/centos/docker-ce.repo -y
+                    sudo yum install docker-ce docker-ce-cli containerd.io -y 
+                    sudo systemctl enable docker
+                    sudo systemctl start docker
+                    sudo usermod -aG docker jenkins
+                    sudo systemctl restart docker
+                '''
+            }
+        }
+     
+     
+       stage("8.Build Docker Image"){
+              steps{
+                script {
+                  docker.build("${DOCKER_IMAGE}:${env.BUILD_NUMBER}")
+                }
+              }
+           }
+           
+     stage("9.Push Docker Image"){
+         steps{
+            script{
+               withDockerRegistry(credentialsId: 'dockerhub-containerized-creds') {
+                   docker.image("${DOCKER_IMAGE}:${env.BUILD_NUMBER}").push()
+								}
+            
+            }
+         }
+      }
+      
+      /*
+       stage("10.Install AWS cli "){
+         steps {
+                sh '''
+                # Install AWS CLI Version 2
+                curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
+                unzip awscliv2.zip
+                sudo ./aws/install --update
+                '''
+            }
+      
+      }
+      */
+      
+      stage('11.Install or Update kubectl') {
+            steps {
+                script {
+                    // Check if kubectl is installed
+                    def kubectlInstalled = sh(script: 'which kubectl', returnStatus: true) == 0
+
+                    if (kubectlInstalled) {
+                        echo 'kubectl is already installed, updating it...'
+                        sh '''
+                        curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
+                        chmod +x kubectl
+                        sudo mv kubectl /usr/local/bin/kubectl
+                        '''
+                    } else {
+                        echo 'kubectl is not installed, installing it...'
+                        sh '''
+                        curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
+                        chmod +x kubectl
+                        sudo mv kubectl /usr/local/bin/kubectl
+                        '''
+                    }
+                }
+            }
+        }
+        
+        
+         stage('12.Install eksctl') {
+            steps {
+                script {
+                    // Install eksctl if not already installed
+                    def eksctlInstalled = sh(script: 'which eksctl', returnStatus: true) == 0
+
+                    if (!eksctlInstalled) {
+                        echo 'Installing eksctl...'
+                        sh '''
+                        # Get the latest eksctl version from GitHub API
+                        curl --silent --location "https://github.com/weaveworks/eksctl/releases/latest/download/eksctl_$(uname -s)_amd64.tar.gz" | tar xz -C /tmp
+                        sudo mv /tmp/eksctl /usr/local/bin/
+                        '''
+                    } else {
+                        echo 'eksctl is already installed.'
+                    }
+                }
+            }
+        }
+        /*
+         stage('16.Run eks-install.sh') {
+            steps {
+                withAWS(credentials: AWS_CREDENTIALS, region: AWS_REGION) {
+                    script {
+                        // Run the eks-install.sh script with the appropriate action (install or delete) . takes about 15 minutes
+        
+                        sh '''
+                        chmod +x eks-install.sh 
+                        ./eks-install.sh install
+                        '''
+                    }
+                }
+            }
+        }
+      */
+       stage("8SendNotification"){
+              steps{
+                sh """
+                echo "i am sending notifiaction"
+                
+                """
+              }
+           }
+         
+       
+       
+        stage("14.Configure AWS and Kubectl"){
+          steps{
+          withAWS(credentials: AWS_CREDENTIALS, region: AWS_REGION) {
+              script {
+                 sh """
+                    aws eks update-kubeconfig --region ${AWS_REGION} --name ${EKS_CLUSTER_NAME}
+                   """
+                  }
+          	}
+          }
+        }
+        
+         stage("15. DeployapplicationtoK8s"){
+             steps{
+          withAWS(credentials: AWS_CREDENTIALS, region: AWS_REGION) {
+              script {
+                 sh """
+                   kubectl apply -f deployment.yaml --namespace default  --validate=false
+                   """
+                  }
+          			}
+          }
+        }
+        
+         stage('16.Retrieve LoadBalancer URL') {
+            steps {
+                withAWS(credentials: AWS_CREDENTIALS, region: AWS_REGION) {
+                script {
+                    // Get LoadBalancer URL (try for hostname first, fallback to IP)
+                    def loadBalancerUrl = sh(script: "kubectl get svc ${SERVICE_NAME} --namespace=${KUBERNETES_NAMESPACE} -o jsonpath='{.status.loadBalancer.ingress[0].hostname}'", returnStdout: true).trim()
+
+                    if (!loadBalancerUrl) {
+                        loadBalancerUrl = sh(script: "kubectl get svc ${SERVICE_NAME} --namespace=${KUBERNETES_NAMESPACE} -o jsonpath='{.status.loadBalancer.ingress[0].ip}'", returnStdout: true).trim()
+                    }
+
+                    if (!loadBalancerUrl) {
+                        error("Failed to retrieve LoadBalancer URL or IP.")
+                    }
+
+                    // Print the full URL with the WAR file context path
+                    def fullAppUrl = "http://${loadBalancerUrl}/barclays-app/"
+                    echo "Application deployed at: ${fullAppUrl}"
+                }
+            }
+        }
+        
+        }
+    
+        
+          
+           
+    }    
+    
+    
+           
+     post{
+     
+        always {
+            echo 'Cleaning up workspace...'
+            //cleanWs()  // Clean the workspace after job
+            
+        }
+
+        success {
+            echo 'Deployment successful!'
+        }
+
+        failure {
+            echo 'Deployment failed!'
+        }
+     } 
+}
